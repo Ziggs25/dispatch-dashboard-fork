@@ -10,9 +10,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Clock, MapPin, Search, Users, CheckCircle, XCircle, AlertCircle, User, LogOut } from "lucide-react"
 import type { ReportData } from "@/lib/types"
-import { createFileRoute } from "@tanstack/react-router"
-
+import { createFileRoute, redirect } from "@tanstack/react-router"
+ 
 export const Route = createFileRoute("/")({
+	beforeLoad: async ({ location }) => {
+    const { supabase } = await import("@/lib/supabase")
+    const { data } = await supabase.auth.getSession()
+    if (!data.session) {
+      throw redirect({ to: "/login", search: { redirect: location.href } })
+    }
+  },
 	component: DispatchDashboard
 })
 
