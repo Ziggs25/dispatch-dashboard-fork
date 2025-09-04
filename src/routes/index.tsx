@@ -8,9 +8,11 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Clock, MapPin, Search, Users, CheckCircle, XCircle, AlertCircle, User, LogOut } from "lucide-react"
-import type { ReportData } from "@/lib/types"
-import { createFileRoute, redirect } from "@tanstack/react-router"
+import { Clock, MapPin, Search, Users, CheckCircle, XCircle, AlertCircle, User, LogOut, Loader2 } from "lucide-react"
+import type { DatabaseReport } from "@/lib/types"
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router"
+import { useAuthContext } from "@/auth/AuthProvider"
+import { useReports } from "@/lib/useReports"
  
 export const Route = createFileRoute("/")({
 	beforeLoad: async ({ location }) => {
@@ -23,103 +25,9 @@ export const Route = createFileRoute("/")({
 	component: DispatchDashboard
 })
 
-// Extended type with status for dispatch management
-interface DispatchReport extends ReportData {
-	id: string
-	status: "pending" | "assigned" | "in-progress" | "resolved" | "cancelled"
-	priority: "low" | "medium" | "high" | "critical"
-	assigned_to?: string
-	created_at: string
-	updated_at: string
-}
 
-// Mock data for demonstration
-const mockReports: DispatchReport[] = [
-	{
-		id: "RPT-001",
-		incident_category: "Emergency",
-		incident_subcategory: "Medical Emergency",
-		incident_title: "Cardiac Arrest - Downtown Plaza",
-		incident_date: "2024-01-15",
-		incident_time: "14:30",
-		street_address: "123 Main Street",
-		nearby_landmark: "City Hall",
-		city: "Toronto",
-		province: "Ontario",
-		brief_description: "Male, 65, collapsed in plaza",
-		what_happened: "Elderly male collapsed suddenly while walking. Bystanders performing CPR.",
-		who_was_involved: "Victim: John Doe, 65. Bystanders: 2 civilians providing aid",
-		number_of_witnesses: "3",
-		injuries_reported: "Cardiac arrest, unconscious",
-		property_damage: "None",
-		suspect_description: "N/A",
-		witness_contact_info: "Jane Smith: 416-555-0123",
-		request_follow_up: true,
-		share_with_community: false,
-		is_anonymous: false,
-		status: "in-progress",
-		priority: "critical",
-		assigned_to: "Unit 12",
-		created_at: "2024-01-15T14:32:00Z",
-		updated_at: "2024-01-15T14:35:00Z",
-	},
-	{
-		id: "RPT-002",
-		incident_category: "Traffic",
-		incident_subcategory: "Vehicle Accident",
-		incident_title: "Multi-Vehicle Collision - Highway 401",
-		incident_date: "2024-01-15",
-		incident_time: "13:45",
-		street_address: "Highway 401 Eastbound, KM 425",
-		nearby_landmark: "Don Valley Parkway Exit",
-		city: "Toronto",
-		province: "Ontario",
-		brief_description: "3-car collision blocking 2 lanes",
-		what_happened: "Chain reaction collision during heavy traffic. Multiple vehicles involved.",
-		who_was_involved: "3 drivers, 2 passengers",
-		number_of_witnesses: "5",
-		injuries_reported: "Minor injuries, 2 people",
-		property_damage: "Significant vehicle damage, estimated $45,000",
-		suspect_description: "N/A",
-		witness_contact_info: "Multiple witnesses on scene",
-		request_follow_up: true,
-		share_with_community: true,
-		is_anonymous: false,
-		status: "assigned",
-		priority: "high",
-		assigned_to: "Unit 7, Unit 15",
-		created_at: "2024-01-15T13:47:00Z",
-		updated_at: "2024-01-15T13:50:00Z",
-	},
-	{
-		id: "RPT-003",
-		incident_category: "Crime",
-		incident_subcategory: "Theft",
-		incident_title: "Store Robbery - Queen Street",
-		incident_date: "2024-01-15",
-		incident_time: "12:15",
-		street_address: "456 Queen Street West",
-		nearby_landmark: "Subway Station",
-		city: "Toronto",
-		province: "Ontario",
-		brief_description: "Armed robbery at convenience store",
-		what_happened: "Masked individual entered store with weapon, demanded cash from register.",
-		who_was_involved: "Store clerk (victim), 1 suspect",
-		number_of_witnesses: "2",
-		injuries_reported: "None",
-		property_damage: "Broken glass door",
-		suspect_description: "Male, 5'8\", black hoodie, face mask",
-		witness_contact_info: "Store owner: 416-555-0456",
-		request_follow_up: true,
-		share_with_community: true,
-		is_anonymous: false,
-		status: "resolved",
-		priority: "high",
-		assigned_to: "Unit 3",
-		created_at: "2024-01-15T12:18:00Z",
-		updated_at: "2024-01-15T15:22:00Z",
-	},
-]
+
+
 
 const getStatusIcon = (status: string) => {
 	switch (status) {
@@ -156,7 +64,7 @@ const getStatusColor = (status: string) => {
 }
 
 const getPriorityColor = (priority: string) => {
-	switch (priority) {
+	switch (priority || 'medium') {
 		case "critical":
 			return "bg-red-100 text-red-800 border-red-200"
 		case "high":
@@ -166,20 +74,25 @@ const getPriorityColor = (priority: string) => {
 		case "low":
 			return "bg-green-100 text-green-800 border-green-200"
 		default:
-			return "bg-gray-100 text-gray-800 border-gray-200"
+			return "bg-yellow-100 text-yellow-800 border-yellow-200" // Default to medium color
 	}
 }
 
 export default function DispatchDashboard() {
-	const [reports, setReports] = useState<DispatchReport[]>(mockReports)
+	const { reports, loading, error, updateReportStatus } = useReports()
 	const [searchTerm, setSearchTerm] = useState("")
 	const [statusFilter, setStatusFilter] = useState("all")
 	const [priorityFilter, setPriorityFilter] = useState("all")
-	const [isAuthenticated, setIsAuthenticated] = useState(false)
-	const [user, setUser] = useState({ name: "Officer Johnson", badge: "12345" })
+	const [isLoggingOut, setIsLoggingOut] = useState(false)
 
-	if (!isAuthenticated) {
-	}
+	const { user: authUser, signOut } = useAuthContext()
+	const navigate = useNavigate()
+
+	const displayName = (() => {
+		const meta = (authUser as any)?.user_metadata || {}
+		const name = [meta.first_name, meta.last_name].filter(Boolean).join(" ")
+		return name || meta.badgenumber || authUser?.email || "Profile"
+	})()
 
 	const filteredReports = reports.filter((report) => {
 		const matchesSearch =
@@ -187,18 +100,12 @@ export default function DispatchDashboard() {
 			report.street_address.toLowerCase().includes(searchTerm.toLowerCase()) ||
 			report.id.toLowerCase().includes(searchTerm.toLowerCase())
 		const matchesStatus = statusFilter === "all" || report.status === statusFilter
-		const matchesPriority = priorityFilter === "all" || report.priority === priorityFilter
+		const matchesPriority = priorityFilter === "all" || (report.priority || 'medium') === priorityFilter
 
 		return matchesSearch && matchesStatus && matchesPriority
 	})
 
-	const updateReportStatus = (reportId: string, newStatus: DispatchReport["status"]) => {
-		setReports((prev) =>
-			prev.map((report) =>
-				report.id === reportId ? { ...report, status: newStatus, updated_at: new Date().toISOString() } : report,
-			),
-		)
-	}
+
 
 	const statusCounts = {
 		pending: reports.filter((r) => r.status === "pending").length,
@@ -220,13 +127,28 @@ export default function DispatchDashboard() {
 						<DropdownMenuTrigger asChild>
 							<Button variant="outline" className="flex items-center gap-2 bg-transparent">
 								<User className="h-4 w-4" />
-								{user.name}
+								{displayName}
 							</Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end">
-							<DropdownMenuItem onClick={() => setIsAuthenticated(false)}>
-								<LogOut className="mr-2 h-4 w-4" />
-								Logout
+							<DropdownMenuItem
+								disabled={isLoggingOut}
+								onClick={async () => {
+									setIsLoggingOut(true)
+									try {
+										await signOut()
+										navigate({ to: "/login", replace: true })
+									} finally {
+										setIsLoggingOut(false)
+									}
+								}}
+							>
+								{isLoggingOut ? (
+									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+								) : (
+									<LogOut className="mr-2 h-4 w-4" />
+								)}
+								{isLoggingOut ? "Logging out..." : "Logout"}
 							</DropdownMenuItem>
 						</DropdownMenuContent>
 					</DropdownMenu>
@@ -314,9 +236,38 @@ export default function DispatchDashboard() {
 					</Select>
 				</div>
 
+				{/* Loading State */}
+				{loading && (
+					<Card>
+						<CardContent className="flex items-center justify-center py-12">
+							<div className="text-center">
+								<Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground mb-4" />
+								<p className="text-muted-foreground">Loading reports...</p>
+							</div>
+						</CardContent>
+					</Card>
+				)}
+
+				{/* Error State */}
+				{error && (
+					<Card>
+						<CardContent className="flex items-center justify-center py-12">
+							<div className="text-center">
+								<AlertCircle className="mx-auto h-8 w-8 text-red-500 mb-4" />
+								<h3 className="text-lg font-semibold mb-2">Error Loading Reports</h3>
+								<p className="text-muted-foreground mb-4">{error}</p>
+								<Button onClick={() => window.location.reload()}>
+									Retry
+								</Button>
+							</div>
+						</CardContent>
+					</Card>
+				)}
+
 				{/* Incidents List */}
-				<div className="space-y-4">
-					{filteredReports.map((report) => (
+				{!loading && !error && (
+					<div className="space-y-4">
+						{filteredReports.map((report) => (
 						<Card key={report.id} className="hover:shadow-md transition-shadow">
 							<CardHeader>
 								<div className="flex items-start justify-between">
@@ -325,7 +276,7 @@ export default function DispatchDashboard() {
 											<Badge variant="outline" className="font-mono">
 												{report.id}
 											</Badge>
-											<Badge className={getPriorityColor(report.priority)}>{report.priority.toUpperCase()}</Badge>
+											<Badge className={getPriorityColor(report.priority || 'medium')}>{(report.priority || 'medium').toUpperCase()}</Badge>
 											<Badge className={getStatusColor(report.status)}>
 												{getStatusIcon(report.status)}
 												<span className="ml-1 capitalize">{report.status.replace("-", " ")}</span>
@@ -352,7 +303,7 @@ export default function DispatchDashboard() {
 									<div className="flex gap-2">
 										<Select
 											value={report.status}
-											onValueChange={(value) => updateReportStatus(report.id, value as DispatchReport["status"])}
+											onValueChange={(value) => updateReportStatus(report.id, value as DatabaseReport["status"])}
 										>
 											<SelectTrigger className="w-[140px]">
 												<SelectValue />
@@ -426,10 +377,11 @@ export default function DispatchDashboard() {
 								</Tabs>
 							</CardContent>
 						</Card>
-					))}
-				</div>
+						))}
+					</div>
+				)}
 
-				{filteredReports.length === 0 && (
+				{!loading && !error && filteredReports.length === 0 && (
 					<Card>
 						<CardContent className="flex items-center justify-center py-12">
 							<div className="text-center">

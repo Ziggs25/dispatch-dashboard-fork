@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "watch-routes": "tsr watch",
-    "dev": "vite --port 3000",
+    "dev": "vite --host --port 3000",
     "start": "vite --port 3000",
     "generate-routes": "tsr generate",
     "generate-routes-watch": "bun run watch-routes",
