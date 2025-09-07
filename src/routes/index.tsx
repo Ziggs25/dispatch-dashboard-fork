@@ -13,21 +13,17 @@ import type { DatabaseReport } from "@/lib/types"
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router"
 import { useAuthContext } from "@/auth/AuthProvider"
 import { useReports } from "@/lib/useReports"
- 
+
 export const Route = createFileRoute("/")({
 	beforeLoad: async ({ location }) => {
-    const { supabase } = await import("@/lib/supabase")
-    const { data } = await supabase.auth.getSession()
-    if (!data.session) {
-      throw redirect({ to: "/login", search: { redirect: location.href } })
-    }
-  },
+		const { supabase } = await import("@/lib/supabase")
+		const { data } = await supabase.auth.getSession()
+		if (!data.session) {
+			throw redirect({ to: "/login", search: { redirect: location.href } })
+		}
+	},
 	component: DispatchDashboard
 })
-
-
-
-
 
 const getStatusIcon = (status: string) => {
 	switch (status) {
@@ -268,115 +264,115 @@ export default function DispatchDashboard() {
 				{!loading && !error && (
 					<div className="space-y-4">
 						{filteredReports.map((report) => (
-						<Card key={report.id} className="hover:shadow-md transition-shadow">
-							<CardHeader>
-								<div className="flex items-start justify-between">
-									<div className="space-y-2">
-										<div className="flex items-center gap-2">
-											<Badge variant="outline" className="font-mono">
-												{report.id}
-											</Badge>
-											<Badge className={getPriorityColor(report.priority || 'medium')}>{(report.priority || 'medium').toUpperCase()}</Badge>
-											<Badge className={getStatusColor(report.status)}>
-												{getStatusIcon(report.status)}
-												<span className="ml-1 capitalize">{report.status.replace("-", " ")}</span>
-											</Badge>
-										</div>
-										<CardTitle className="text-lg">{report.incident_title}</CardTitle>
-										<div className="flex items-center gap-4 text-sm text-muted-foreground">
-											<div className="flex items-center gap-1">
-												<MapPin className="h-4 w-4" />
-												{report.street_address}, {report.city}
+							<Card key={report.id} className="hover:shadow-md transition-shadow">
+								<CardHeader>
+									<div className="flex items-start justify-between">
+										<div className="space-y-2">
+											<div className="flex items-center gap-2">
+												<Badge variant="outline" className="font-mono">
+													{report.id}
+												</Badge>
+												<Badge className={getPriorityColor(report.priority || 'medium')}>{(report.priority || 'medium').toUpperCase()}</Badge>
+												<Badge className={getStatusColor(report.status)}>
+													{getStatusIcon(report.status)}
+													<span className="ml-1 capitalize">{report.status.replace("-", " ")}</span>
+												</Badge>
 											</div>
-											<div className="flex items-center gap-1">
-												<Clock className="h-4 w-4" />
-												{report.incident_date} at {report.incident_time}
-											</div>
-											{report.assigned_to && (
+											<CardTitle className="text-lg">{report.incident_title}</CardTitle>
+											<div className="flex items-center gap-4 text-sm text-muted-foreground">
 												<div className="flex items-center gap-1">
-													<Users className="h-4 w-4" />
-													{report.assigned_to}
+													<MapPin className="h-4 w-4" />
+													{report.street_address}, {report.city}
 												</div>
-											)}
+												<div className="flex items-center gap-1">
+													<Clock className="h-4 w-4" />
+													{report.incident_date} at {report.incident_time}
+												</div>
+												{report.assigned_to && (
+													<div className="flex items-center gap-1">
+														<Users className="h-4 w-4" />
+														{report.assigned_to}
+													</div>
+												)}
+											</div>
+										</div>
+										<div className="flex gap-2">
+											<Select
+												value={report.status}
+												onValueChange={(value) => updateReportStatus(report.id, value as DatabaseReport["status"])}
+											>
+												<SelectTrigger className="w-[140px]">
+													<SelectValue />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectItem value="pending">Pending</SelectItem>
+													<SelectItem value="assigned">Assigned</SelectItem>
+													<SelectItem value="in-progress">In Progress</SelectItem>
+													<SelectItem value="resolved">Resolved</SelectItem>
+													<SelectItem value="cancelled">Cancelled</SelectItem>
+												</SelectContent>
+											</Select>
 										</div>
 									</div>
-									<div className="flex gap-2">
-										<Select
-											value={report.status}
-											onValueChange={(value) => updateReportStatus(report.id, value as DatabaseReport["status"])}
-										>
-											<SelectTrigger className="w-[140px]">
-												<SelectValue />
-											</SelectTrigger>
-											<SelectContent>
-												<SelectItem value="pending">Pending</SelectItem>
-												<SelectItem value="assigned">Assigned</SelectItem>
-												<SelectItem value="in-progress">In Progress</SelectItem>
-												<SelectItem value="resolved">Resolved</SelectItem>
-												<SelectItem value="cancelled">Cancelled</SelectItem>
-											</SelectContent>
-										</Select>
-									</div>
-								</div>
-							</CardHeader>
-							<CardContent>
-								<Tabs defaultValue="overview" className="w-full">
-									<TabsList className="grid w-full grid-cols-3">
-										<TabsTrigger value="overview">Overview</TabsTrigger>
-										<TabsTrigger value="details">Details</TabsTrigger>
-										<TabsTrigger value="contacts">Contacts</TabsTrigger>
-									</TabsList>
-									<TabsContent value="overview" className="space-y-4">
-										<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-											<div>
-												<h4 className="font-semibold mb-2">Incident Summary</h4>
-												<p className="text-sm text-muted-foreground">{report.brief_description}</p>
+								</CardHeader>
+								<CardContent>
+									<Tabs defaultValue="overview" className="w-full">
+										<TabsList className="grid w-full grid-cols-3">
+											<TabsTrigger value="overview">Overview</TabsTrigger>
+											<TabsTrigger value="details">Details</TabsTrigger>
+											<TabsTrigger value="contacts">Contacts</TabsTrigger>
+										</TabsList>
+										<TabsContent value="overview" className="space-y-4">
+											<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+												<div>
+													<h4 className="font-semibold mb-2">Incident Summary</h4>
+													<p className="text-sm text-muted-foreground">{report.brief_description}</p>
+												</div>
+												<div>
+													<h4 className="font-semibold mb-2">Category</h4>
+													<p className="text-sm">
+														{report.incident_category} - {report.incident_subcategory}
+													</p>
+												</div>
 											</div>
-											<div>
-												<h4 className="font-semibold mb-2">Category</h4>
-												<p className="text-sm">
-													{report.incident_category} - {report.incident_subcategory}
-												</p>
+										</TabsContent>
+										<TabsContent value="details" className="space-y-4">
+											<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+												<div>
+													<h4 className="font-semibold mb-2">What Happened</h4>
+													<p className="text-sm text-muted-foreground">{report.what_happened}</p>
+												</div>
+												<div>
+													<h4 className="font-semibold mb-2">Involved Parties</h4>
+													<p className="text-sm text-muted-foreground">{report.who_was_involved}</p>
+												</div>
+												<div>
+													<h4 className="font-semibold mb-2">Injuries</h4>
+													<p className="text-sm text-muted-foreground">{report.injuries_reported || "None reported"}</p>
+												</div>
+												<div>
+													<h4 className="font-semibold mb-2">Property Damage</h4>
+													<p className="text-sm text-muted-foreground">{report.property_damage || "None reported"}</p>
+												</div>
 											</div>
-										</div>
-									</TabsContent>
-									<TabsContent value="details" className="space-y-4">
-										<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-											<div>
-												<h4 className="font-semibold mb-2">What Happened</h4>
-												<p className="text-sm text-muted-foreground">{report.what_happened}</p>
+										</TabsContent>
+										<TabsContent value="contacts" className="space-y-4">
+											<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+												<div>
+													<h4 className="font-semibold mb-2">Witnesses</h4>
+													<p className="text-sm text-muted-foreground">{report.number_of_witnesses} witnesses</p>
+												</div>
+												<div>
+													<h4 className="font-semibold mb-2">Contact Information</h4>
+													<p className="text-sm text-muted-foreground">
+														{report.witness_contact_info || "No contact info available"}
+													</p>
+												</div>
 											</div>
-											<div>
-												<h4 className="font-semibold mb-2">Involved Parties</h4>
-												<p className="text-sm text-muted-foreground">{report.who_was_involved}</p>
-											</div>
-											<div>
-												<h4 className="font-semibold mb-2">Injuries</h4>
-												<p className="text-sm text-muted-foreground">{report.injuries_reported || "None reported"}</p>
-											</div>
-											<div>
-												<h4 className="font-semibold mb-2">Property Damage</h4>
-												<p className="text-sm text-muted-foreground">{report.property_damage || "None reported"}</p>
-											</div>
-										</div>
-									</TabsContent>
-									<TabsContent value="contacts" className="space-y-4">
-										<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-											<div>
-												<h4 className="font-semibold mb-2">Witnesses</h4>
-												<p className="text-sm text-muted-foreground">{report.number_of_witnesses} witnesses</p>
-											</div>
-											<div>
-												<h4 className="font-semibold mb-2">Contact Information</h4>
-												<p className="text-sm text-muted-foreground">
-													{report.witness_contact_info || "No contact info available"}
-												</p>
-											</div>
-										</div>
-									</TabsContent>
-								</Tabs>
-							</CardContent>
-						</Card>
+										</TabsContent>
+									</Tabs>
+								</CardContent>
+							</Card>
 						))}
 					</div>
 				)}

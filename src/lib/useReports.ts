@@ -83,7 +83,10 @@ export function useReports(): UseReportsReturn {
           fetchReports() // Refetch all reports on any change
         }
       )
-      .subscribe()
+      .subscribe((status, err) => {
+			console.log('Subscription status:', status)
+			console.log('Subscription error:', err?.message)
+		})
 
     return () => {
       supabase.removeChannel(channel)
