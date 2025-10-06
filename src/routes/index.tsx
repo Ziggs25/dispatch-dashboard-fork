@@ -135,6 +135,12 @@ export default function DispatchDashboard() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem
+                onClick={() => navigate({ to: "/profile" })}
+              >
+                <User className="mr-2 h-4 w-4" />
+                Profile
+              </DropdownMenuItem>
+              <DropdownMenuItem
                 disabled={isLoggingOut}
                 onClick={async () => {
                   setIsLoggingOut(true)
